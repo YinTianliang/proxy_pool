@@ -85,8 +85,9 @@ port = 5010          # 监听端口
 | api | method | Description | arg|
 | ----| ---- | ---- | ----|
 | / | GET | api介绍 | None |
-| /get | GET | 随机获取一个代理 | None|
+| /get | GET | 随机获取一个代理 | type=&max_speed=&annoy=|
 | /get_all | GET | 获取所有代理 |None|
+| /get_full| GET | 获取所有代理的详细信息|None|
 | /get_status | GET | 查看代理数量 |None|
 | /delete | GET | 删除代理  |proxy=host:ip|
 

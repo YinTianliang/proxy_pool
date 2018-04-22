@@ -112,8 +112,8 @@ class GetFreeProxy(object):
                     ]
         for each_url in url_list:
             tree = getHtmlTree(each_url)
-            proxy_list = tree.xpath('.//table[@id="ip_list"]//tr')
-            for proxy in proxy_list[1:]:
+            proxy_list = tree.xpath('.//table[@id="ip_list"]//tr')[1:]
+            for proxy in proxy_list:
                 try:
                     info = proxy.xpath('./td[position() <= 3 or position() >= 5]/text()')
                     yield [':'.join(info[0:2])] + info[2:4]
@@ -175,8 +175,8 @@ class GetFreeProxy(object):
             for page in range(1, 10):
                 page_url = url.format(page=page)
                 tree = getHtmlTree(page_url)
-                proxy_list = tree.xpath('.//table//tr')
-                for tr in proxy_list[1:]:
+                proxy_list = tree.xpath('.//table//tr')[1:]
+                for tr in proxy_list:
                     info = tr.xpath('./td/text()')
                     if info[2] == '高匿名':
                         info[2] = '高匿'
@@ -187,18 +187,40 @@ class GetFreeProxy(object):
         """
         秘密代理IP网站http://www.mimiip.com
         """
-        url_gngao = ['http://www.mimiip.com/gngao/%s' % n for n in range(1, 10)]  # 国内高匿
-        url_gnpu = ['http://www.mimiip.com/gnpu/%s' % n for n in range(1, 10)]  # 国内普匿
-        url_gntou = ['http://www.mimiip.com/gntou/%s' % n for n in range(1, 10)]  # 国内透明
+        url_gngao = ['http://www.mimiip.com/gngao/%s' % n for n in range(1, 5)]  # 国内高匿
+        url_gnpu = ['http://www.mimiip.com/gnpu/%s' % n for n in range(1, 5)]  # 国内普匿
+        url_gntou = ['http://www.mimiip.com/gntou/%s' % n for n in range(1, 5)]  # 国内透明
         url_list = url_gngao + url_gnpu + url_gntou
 
         for url in url_list:
             tree = getHtmlTree(url)
-            proxy_list = tree.xpath('//table[@class="list"]/tr')
-            for proxy in proxy_list[1:]:
+            proxy_list = tree.xpath('//table[@class="list"]/tr')[1:]
+            for proxy in proxy_list:
                 info = proxy.xpath('./td/text()')
                 ip_addr = ':'.join(info[0:2])
                 yield [ip_addr] + info[5:7]
+
+    @staticmethod
+    def freeProxyNinth():
+        """
+        云代理,360三维代理(两网站长一样)
+        http://www.ip3366.net/
+        http://www.swei360.com/
+        :return:
+        """
+        url_list = ['http://www.ip3366.net/?stype=1&page={}'.format(i) for i in range(1, 5)] + \
+                   ['http://www.swei360.com/?page={}'.format(i) for i in range(1, 5)]
+
+        for url in url_list:
+            tree = getHtmlTree(url)
+            proxy_list = tree.xpath('//div[@id="list"]//tr')[1:]
+            for proxy in proxy_list:
+                info = proxy.xpath('./td/text()')
+                ip_addr = ':'.join(info[0:2])
+                ip_annoy = info[2][0:2]
+                if ip_annoy == '普通':
+                    ip_annoy = '匿名'
+                yield [ip_addr, ip_annoy, info[3]]
 
     @staticmethod
     def freeProxyWallFirst():

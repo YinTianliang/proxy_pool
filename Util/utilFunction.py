@@ -46,7 +46,8 @@ def verifyProxyFormat(proxy):
     verify_regex = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}"
     _proxy = re.findall(verify_regex, proxy[0])
 
-    if not (proxy[1] in ['透明', '匿名', '高匿'] and proxy[2].upper() in ['HTTP', 'HTTPS', 'HTTP/HTTPS']):
+    if not (proxy[1] in ['透明', '匿名', '高匿'] and
+            set(proxy[2].upper().split('/')) <= set(['HTTP', 'HTTPS', 'SOCKS4', 'SOCKS5'])):
         return False
 
     return True if len(_proxy) == 1 and _proxy[0] == proxy[0] else False
