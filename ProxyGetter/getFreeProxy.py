@@ -67,7 +67,7 @@ class GetFreeProxy(object):
             ul_list = html_tree.xpath('//ul[@class="l2"]')
             for ul in ul_list:
                 try:
-                    yield ':'.join(ul.xpath('.//li/text()')[0:2])
+                    yield [':'.join(ul.xpath('.//li/text()')[0:2])] +  ul.xpath('.//a/text()')[0:2]
                 except Exception as e:
                     pass
 
@@ -83,7 +83,7 @@ class GetFreeProxy(object):
         request = WebRequest()
         html = request.get(url).text
         for proxy in re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}', html):
-            yield proxy
+            yield [proxy, '透明', 'http']
 
     @staticmethod
     def freeProxyThird(days=1):
@@ -113,9 +113,10 @@ class GetFreeProxy(object):
         for each_url in url_list:
             tree = getHtmlTree(each_url)
             proxy_list = tree.xpath('.//table[@id="ip_list"]//tr')
-            for proxy in proxy_list:
+            for proxy in proxy_list[1:]:
                 try:
-                    yield ':'.join(proxy.xpath('./td/text()')[0:2])
+                    info = proxy.xpath('./td[position() <= 3 or position() >= 5]/text()')
+                    yield [':'.join(info[0:2])] + info[2:4]
                 except Exception as e:
                     pass
 
@@ -127,10 +128,10 @@ class GetFreeProxy(object):
         """
         url = "http://www.goubanjia.com/"
         tree = getHtmlTree(url)
-        proxy_list = tree.xpath('//td[@class="ip"]')
+        proxy_list = tree.xpath('//tbody/tr')
         # 此网站有隐藏的数字干扰，或抓取到多余的数字或.符号
         # 需要过滤掉<p style="display:none;">的内容
-        xpath_str = """.//*[not(contains(@style, 'display: none'))
+        xpath_str = """./td[@class="ip"]/*[not(contains(@style, 'display: none'))
                                         and not(contains(@style, 'display:none'))
                                         and not(contains(@class, 'port'))
                                         ]/text()
@@ -139,8 +140,9 @@ class GetFreeProxy(object):
             try:
                 # :符号裸放在td下，其他放在div span p中，先分割找出ip，再找port
                 ip_addr = ''.join(each_proxy.xpath(xpath_str))
+                ip_type = each_proxy.xpath('./td/a/text()')[0:2]
                 port = each_proxy.xpath(".//span[contains(@class, 'port')]/text()")[0]
-                yield '{}:{}'.format(ip_addr, port)
+                yield ['{}:{}'.format(ip_addr, port)] + ip_type
             except Exception as e:
                 pass
 
@@ -155,7 +157,7 @@ class GetFreeProxy(object):
         try:
             res = request.get(url).json()
             for row in res['RESULT']['rows']:
-                yield '{}:{}'.format(row['ip'], row['port'])
+                yield ['{}:{}'.format(row['ip'], row['port']), row['anony'], row['type']]
         except Exception as e:
             pass
 
@@ -164,13 +166,21 @@ class GetFreeProxy(object):
         """
         快代理免费https://www.kuaidaili.com/free/inha/1/
         """
-        url = 'https://www.kuaidaili.com/free/inha/{page}/'
-        for page in range(1, 10):
-            page_url = url.format(page=page)
-            tree = getHtmlTree(page_url)
-            proxy_list = tree.xpath('.//table//tr')
-            for tr in proxy_list[1:]:
-                yield ':'.join(tr.xpath('./td/text()')[0:2])
+        url_list = [
+            'https://www.kuaidaili.com/free/inha/{page}/',
+            'https://www.kuaidaili.com/free/intr/{page}'
+        ]
+
+        for url in url_list:
+            for page in range(1, 10):
+                page_url = url.format(page=page)
+                tree = getHtmlTree(page_url)
+                proxy_list = tree.xpath('.//table//tr')
+                for tr in proxy_list[1:]:
+                    info = tr.xpath('./td/text()')
+                    if info[2] == '高匿名':
+                        info[2] = '高匿'
+                    yield [':'.join(info[0:2])] + info[2:4]
 
     @staticmethod
     def freeProxyEight():
@@ -182,12 +192,13 @@ class GetFreeProxy(object):
         url_gntou = ['http://www.mimiip.com/gntou/%s' % n for n in range(1, 10)]  # 国内透明
         url_list = url_gngao + url_gnpu + url_gntou
 
-        request = WebRequest()
         for url in url_list:
-            r = request.get(url)
-            proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\w\W].*<td>(\d+)</td>', r.text)
-            for proxy in proxies:
-                yield ':'.join(proxy)
+            tree = getHtmlTree(url)
+            proxy_list = tree.xpath('//table[@class="list"]/tr')
+            for proxy in proxy_list[1:]:
+                info = proxy.xpath('./td/text()')
+                ip_addr = ':'.join(info[0:2])
+                yield [ip_addr] + info[5:7]
 
     @staticmethod
     def freeProxyWallFirst():
@@ -201,18 +212,29 @@ class GetFreeProxy(object):
             r = request.get(url)
             proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\w\W]<td>(\d+)</td>', r.text)
             for proxy in proxies:
-                yield ':'.join(proxy)
+                yield [':'.join(proxy), '透明', 'HTTP']
 
     @staticmethod
     def freeProxyWallSecond():
+        """
+        墙外网站 proxy-list
+        :return:
+        """
         urls = ['https://proxy-list.org/english/index.php?p=%s' % n for n in range(1, 10)]
-        request = WebRequest()
+        eng2chi = {
+            'Transparent': '透明',
+            'Anonymous': '匿名',
+            'Elite': '高匿'
+        }
+        # request = WebRequest()
         import base64
         for url in urls:
-            r = request.get(url)
-            proxies = re.findall(r"Proxy\('(.*?)'\)", r.text)
-            for proxy in proxies:
-                yield base64.b64decode(proxy).decode()
+            tree = getHtmlTree(url)
+            proxy_list = tree.xpath('//div[@class="proxy-table"]//ul')
+            for proxy in proxy_list[1:]:
+                info = proxy.xpath('./li//text()')
+                ip_addr = base64.b64decode(info[0].split("'")[1]).decode()
+                yield [ip_addr, eng2chi[info[3]], info[1]]
 
 
 if __name__ == '__main__':

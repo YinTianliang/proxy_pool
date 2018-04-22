@@ -9,7 +9,7 @@
 -------------------------------------------------
    Change Activity:
                    2016/11/25: 添加robustCrawl、verifyProxy、getHtmlTree
-                   2018/4/22: validUsefulProxy返回响应时间(s)
+                   2018/04/22: validUsefulProxy返回响应时间(s), update verifyProxyFormat
 -------------------------------------------------
 """
 import requests
@@ -44,8 +44,12 @@ def verifyProxyFormat(proxy):
     """
     import re
     verify_regex = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}"
-    _proxy = re.findall(verify_regex, proxy)
-    return True if len(_proxy) == 1 and _proxy[0] == proxy else False
+    _proxy = re.findall(verify_regex, proxy[0])
+
+    if not (proxy[1] in ['透明', '匿名', '高匿'] and proxy[2].upper() in ['HTTP', 'HTTPS', 'HTTP/HTTPS']):
+        return False
+
+    return True if len(_proxy) == 1 and _proxy[0] == proxy[0] else False
 
 
 # noinspection PyPep8Naming
@@ -89,7 +93,7 @@ def tcpConnect(proxy):
 
 
 # noinspection PyPep8Naming
-def validUsefulProxy(proxy):
+def getProxySpeed(proxy):
     """
     检验代理是否可用
     :param proxy:
@@ -104,6 +108,7 @@ def validUsefulProxy(proxy):
         if r.status_code == 200:
             # logger.info('%s is ok' % proxy)
             return r.elapsed.total_seconds()
+        return 20.0
     except Exception as e:
         # logger.error(str(e))
-        return None
+        return 20.0

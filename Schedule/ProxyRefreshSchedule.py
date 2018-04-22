@@ -11,6 +11,7 @@
                    2016/12/4: 代理定时刷新
                    2017/03/06: 使用LogHandler添加日志
                    2017/04/26: raw_proxy_queue验证通过但useful_proxy_queue中已经存在的代理不在放入
+                   2018/04/22: 增加记录代理的详细信息
 -------------------------------------------------
 """
 
@@ -22,7 +23,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 sys.path.append('../')
 
-from Util.utilFunction import validUsefulProxy
+from Util.utilFunction import getProxySpeed
 from Manager.ProxyManager import ProxyManager
 from Util.LogHandler import LogHandler
 
@@ -58,15 +59,19 @@ class ProxyRefreshSchedule(ProxyManager):
 
             speed = 0
             if raw_proxy not in remaining_proxies:
-                speed = validUsefulProxy(raw_proxy)
+                speed = getProxySpeed(raw_proxy)
 
-            if speed:
+            if speed < 20:
                 self.db.changeTable(self.useful_proxy_queue)
                 self.db.put(raw_proxy)
                 self.db.changeTable(self.proxy_speed)
                 self.db.put(raw_proxy, num=speed)
                 self.log.info('ProxyRefreshSchedule: %s validation pass.[%.3fs]' % (raw_proxy, speed))
             else:
+                self.db.changeTable(self.proxy_type)
+                self.db.delete(raw_proxy)
+                self.db.changeTable(self.proxy_annoy)
+                self.db.delete(raw_proxy)
                 self.log.info('ProxyRefreshSchedule: %s validation fail' % raw_proxy)
             self.db.changeTable(self.raw_proxy_queue)
             raw_proxy_item = self.db.pop()

@@ -9,7 +9,7 @@
 -------------------------------------------------
    Change Activity:
                    2016/12/3:
-                   2018/4/22: 增加proxy_speed
+                   2018/4/22: 增加了代理的其它信息, get增加了参数
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -36,6 +36,8 @@ class ProxyManager(object):
         self.log = LogHandler('proxy_manager')
         self.useful_proxy_queue = 'useful_proxy'
         self.proxy_speed = 'proxy_speed'
+        self.proxy_annoy = 'proxy_annoy'
+        self.proxy_type = 'proxy_type'
 
     def refresh(self):
         """
@@ -52,7 +54,7 @@ class ProxyManager(object):
                 self.log.error("{func}: fetch proxy fail".format(func=proxyGetter))
                 continue
             for proxy in proxy_iter:
-                proxy = proxy.strip()
+                proxy = tuple(item.strip() for item in proxy)
                 if proxy and verifyProxyFormat(proxy):
                     self.log.info('{func}: fetch proxy {proxy}'.format(func=proxyGetter, proxy=proxy))
                     proxy_set.add(proxy)
@@ -62,25 +64,35 @@ class ProxyManager(object):
             # store
             for proxy in proxy_set:
                 self.db.changeTable(self.useful_proxy_queue)
-                if self.db.exists(proxy):
+                if self.db.exists(proxy[0]):
                     continue
                 self.db.changeTable(self.raw_proxy_queue)
-                self.db.put(proxy)
+                self.db.put(proxy[0])
+                self.db.changeTable(self.proxy_annoy)
+                self.db.put(proxy[0], num=proxy[1])
+                self.db.changeTable(self.proxy_type)
+                self.db.put(proxy[0], num=proxy[2].upper())
 
-    def get(self):
+    def get(self, **kwargs):
         """
         return a useful proxy
+        :param kwargs:
         :return:
         """
-        self.db.changeTable(self.useful_proxy_queue)
-        item_dict = self.db.getAll()
-        if item_dict:
-            if EnvUtil.PY3:
-                return random.choice(list(item_dict.keys()))
-            else:
-                return random.choice(item_dict.keys())
+        def check(proxy):
+            if kwargs['type'] and not (proxy['type'] == kwargs['type'] or kwargs['type'] == 'HTTP/HTTPS'):
+                return False
+            if kwargs['max_speed'] and not (float(proxy['speed']) < float(kwargs['max_speed'])):
+                return False
+            if kwargs['annoy'] and not (proxy['annoy'] in kwargs['annoy']):
+                return False
+            return True
+
+        proxies = ProxyManager().getFull()
+
+        if proxies:
+            return random.choice([proxy['address'] for proxy in proxies if check(proxy)])
         return None
-        # return self.db.pop()
 
     def delete(self, proxy):
         """
@@ -107,15 +119,24 @@ class ProxyManager(object):
         get all proxy with full infomation from poll as list
         :return:
         """
-        self.db.changeTable(self.useful_proxy_queue)
-        useful_proxy = self.db.getAll()
+        proxy_info = {
+            self.useful_proxy_queue: 'address',
+            self.proxy_annoy: 'annoy',
+            self.proxy_type: 'type',
+            self.proxy_speed: 'speed'
+        }
 
-        self.db.changeTable(self.proxy_speed)
-        proxy_speed = self.db.getAll()
+        item_dict = {}
+
+        for key, value in proxy_info.items():
+            self.db.changeTable(key)
+            item_dict[value] = self.db.getAll()
 
         item_list = []
-        for addr in useful_proxy.keys():
-            item_list.append({'address': addr, 'speed': proxy_speed.get(addr, '')})
+        for addr in item_dict['address']:
+            item = {item: item_dict[item][addr] for item in item_dict.keys()}
+            item['address'] = addr
+            item_list.append(item)
 
         return item_list
 

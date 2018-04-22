@@ -8,7 +8,7 @@
 -------------------------------------------------
    Change Activity:
                    2017/9/26: 多线程验证useful_proxy
-                   2018/4/22: 增加proxy_speed
+                   2018/4/22: 增加记录代理的详细信息
 -------------------------------------------------
 """
 __author__ = 'J_hao'
@@ -19,7 +19,7 @@ from threading import Thread
 
 sys.path.append('../')
 
-from Util.utilFunction import validUsefulProxy
+from Util.utilFunction import getProxySpeed
 from Manager.ProxyManager import ProxyManager
 from Util.LogHandler import LogHandler
 
@@ -35,18 +35,17 @@ class ProxyCheck(ProxyManager, Thread):
         self.item_dict = item_dict
 
     def run(self):
-        self.db.changeTable(self.useful_proxy_queue)
         while self.queue.qsize():
+            self.db.changeTable(self.useful_proxy_queue)
             proxy = self.queue.get()
             count = self.item_dict[proxy]
-            speed = validUsefulProxy(proxy)
-            if speed:
+            speed = getProxySpeed(proxy)
+            if speed < 20:
                 # 验证通过计数器减1
                 if count and int(count) > 0:
                     self.db.put(proxy, num=int(count) - 1)
                     self.db.changeTable(self.proxy_speed)
                     self.db.put(proxy, num=speed)
-                    self.db.changeTable(self.useful_proxy_queue)
                 else:
                     pass
                 self.log.info('ProxyCheck: {} validation pass.[{:.3f}s]'.format(proxy, speed))
@@ -54,10 +53,12 @@ class ProxyCheck(ProxyManager, Thread):
                 self.log.info('ProxyCheck: {} validation fail'.format(proxy))
                 if count and int(count) + 1 >= FAIL_COUNT:
                     self.log.info('ProxyCheck: {} fail too many, delete!'.format(proxy))
-                    self.db.delete(proxy)
-                    self.db.changeTable(self.proxy_speed)
-                    self.db.delete(proxy)
-                    self.db.changeTable(self.useful_proxy_queue)
+
+                    tables = [self.useful_proxy_queue, self.proxy_speed, self.proxy_annoy, self.proxy_type]
+                    for table in tables:
+                        self.db.changeTable(table)
+                        self.db.delete(proxy)
+
                 else:
                     self.db.put(proxy, num=int(count) + 1)
             self.queue.task_done()

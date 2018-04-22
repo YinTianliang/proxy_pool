@@ -9,7 +9,7 @@
 -------------------------------------------------
    Change Activity:
                    2016/12/4:
-                   2018/4/22: 增加get_full api获取所有代理详细信息
+                   2018/4/22: 增加get_full api获取所有代理详细信息, 给ge添加了参数t
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -39,7 +39,7 @@ class JsonResponse(Response):
 app.response_class = JsonResponse
 
 api_list = {
-    'get': u'get an usable proxy',
+    'get?type=&max_speed=&annoy=': u'get an usable proxy',
     # 'refresh': u'refresh proxy pool',
     'get_all': u'get all proxy from proxy pool',
     'get_full': u'get all proxy with full information from proxy pool',
@@ -53,9 +53,16 @@ def index():
     return api_list
 
 
-@app.route('/get/')
+@app.route('/get/', methods=['GET'])
 def get():
-    proxy = ProxyManager().get()
+    options = {'type': '', 'max_speed': '', 'annoy': ''}
+    for option in options.keys():
+        value = request.args.get(option)
+        if value:
+            options[option] = value
+
+    proxy = ProxyManager().get(**options)
+
     return proxy if proxy else 'no proxy!'
 
 
