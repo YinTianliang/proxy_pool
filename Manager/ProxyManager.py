@@ -8,7 +8,8 @@
    date：          2016/12/3
 -------------------------------------------------
    Change Activity:
-                   2016/12/3: 
+                   2016/12/3:
+                   2018/4/22: 增加proxy_speed
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -34,6 +35,7 @@ class ProxyManager(object):
         self.raw_proxy_queue = 'raw_proxy'
         self.log = LogHandler('proxy_manager')
         self.useful_proxy_queue = 'useful_proxy'
+        self.proxy_speed = 'proxy_speed'
 
     def refresh(self):
         """
@@ -99,6 +101,23 @@ class ProxyManager(object):
         if EnvUtil.PY3:
             return list(item_dict.keys()) if item_dict else list()
         return item_dict.keys() if item_dict else list()
+
+    def getFull(self):
+        """
+        get all proxy with full infomation from poll as list
+        :return:
+        """
+        self.db.changeTable(self.useful_proxy_queue)
+        useful_proxy = self.db.getAll()
+
+        self.db.changeTable(self.proxy_speed)
+        proxy_speed = self.db.getAll()
+
+        item_list = []
+        for addr in useful_proxy.keys():
+            item_list.append({'address': addr, 'speed': proxy_speed.get(addr, '')})
+
+        return item_list
 
     def getNumber(self):
         self.db.changeTable(self.raw_proxy_queue)

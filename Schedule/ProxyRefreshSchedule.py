@@ -56,10 +56,16 @@ class ProxyRefreshSchedule(ProxyManager):
                 # 兼容Py3
                 raw_proxy = raw_proxy.decode('utf8')
 
-            if (raw_proxy not in remaining_proxies) and validUsefulProxy(raw_proxy):
+            speed = 0
+            if raw_proxy not in remaining_proxies:
+                speed = validUsefulProxy(raw_proxy)
+
+            if speed:
                 self.db.changeTable(self.useful_proxy_queue)
                 self.db.put(raw_proxy)
-                self.log.info('ProxyRefreshSchedule: %s validation pass' % raw_proxy)
+                self.db.changeTable(self.proxy_speed)
+                self.db.put(raw_proxy, num=speed)
+                self.log.info('ProxyRefreshSchedule: %s validation pass.[%.3fs]' % (raw_proxy, speed))
             else:
                 self.log.info('ProxyRefreshSchedule: %s validation fail' % raw_proxy)
             self.db.changeTable(self.raw_proxy_queue)

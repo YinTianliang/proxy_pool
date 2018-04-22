@@ -9,6 +9,7 @@
 -------------------------------------------------
    Change Activity:
                    2016/11/25: 添加robustCrawl、verifyProxy、getHtmlTree
+                   2018/4/22: validUsefulProxy返回响应时间(s)
 -------------------------------------------------
 """
 import requests
@@ -102,7 +103,7 @@ def validUsefulProxy(proxy):
         r = requests.get('http://httpbin.org/ip', proxies=proxies, timeout=10, verify=False)
         if r.status_code == 200:
             # logger.info('%s is ok' % proxy)
-            return True
+            return r.elapsed.total_seconds()
     except Exception as e:
         # logger.error(str(e))
-        return False
+        return None

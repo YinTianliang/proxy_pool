@@ -8,10 +8,12 @@
 -------------------------------------------------
    Change Activity:
                    2017/9/26: 多线程验证useful_proxy
+                   2018/4/22: 增加proxy_speed
 -------------------------------------------------
 """
 __author__ = 'J_hao'
 
+import json
 import sys
 from threading import Thread
 
@@ -37,18 +39,25 @@ class ProxyCheck(ProxyManager, Thread):
         while self.queue.qsize():
             proxy = self.queue.get()
             count = self.item_dict[proxy]
-            if validUsefulProxy(proxy):
+            speed = validUsefulProxy(proxy)
+            if speed:
                 # 验证通过计数器减1
                 if count and int(count) > 0:
                     self.db.put(proxy, num=int(count) - 1)
+                    self.db.changeTable(self.proxy_speed)
+                    self.db.put(proxy, num=speed)
+                    self.db.changeTable(self.useful_proxy_queue)
                 else:
                     pass
-                self.log.info('ProxyCheck: {} validation pass'.format(proxy))
+                self.log.info('ProxyCheck: {} validation pass.[{:.3f}s]'.format(proxy, speed))
             else:
                 self.log.info('ProxyCheck: {} validation fail'.format(proxy))
                 if count and int(count) + 1 >= FAIL_COUNT:
                     self.log.info('ProxyCheck: {} fail too many, delete!'.format(proxy))
                     self.db.delete(proxy)
+                    self.db.changeTable(self.proxy_speed)
+                    self.db.delete(proxy)
+                    self.db.changeTable(self.useful_proxy_queue)
                 else:
                     self.db.put(proxy, num=int(count) + 1)
             self.queue.task_done()

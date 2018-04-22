@@ -8,7 +8,8 @@
    date：          2016/12/4
 -------------------------------------------------
    Change Activity:
-                   2016/12/4: 
+                   2016/12/4:
+                   2018/4/22: 增加get_full api获取所有代理详细信息
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -41,6 +42,7 @@ api_list = {
     'get': u'get an usable proxy',
     # 'refresh': u'refresh proxy pool',
     'get_all': u'get all proxy from proxy pool',
+    'get_full': u'get all proxy with full information from proxy pool',
     'delete?proxy=127.0.0.1:8080': u'delete an unable proxy',
     'get_status': u'proxy statistics'
 }
@@ -68,6 +70,12 @@ def refresh():
 @app.route('/get_all/')
 def getAll():
     proxies = ProxyManager().getAll()
+    return proxies
+
+
+@app.route('/get_full/')
+def getFull():
+    proxies = ProxyManager().getFull()
     return proxies
 
 
