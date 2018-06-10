@@ -36,16 +36,17 @@ class ProxyCheck(ProxyManager, Thread):
 
     def run(self):
         while self.queue.qsize():
-            self.db.changeTable(self.useful_proxy_queue)
+            # self.db.changeTable(self.useful_proxy_queue)
             proxy = self.queue.get()
             count = self.item_dict[proxy]
             speed = getProxySpeed(proxy)
             if speed < 20:
                 # 验证通过计数器减1
                 if count and int(count) > 0:
-                    self.db.put(proxy, num=int(count) - 1)
-                    self.db.changeTable(self.proxy_speed)
-                    self.db.put(proxy, num=speed)
+                    self.db.put(self.useful_proxy_queue, proxy, **{'failed': 1 , 'speed': speed})
+                    # self.db.put(proxy, num=int(count) - 1)
+                    # self.db.changeTable(self.proxy_speed)
+                    # self.db.put(proxy, num=speed)
                 else:
                     pass
                 self.log.info('ProxyCheck: {} validation pass.[{:.3f}s]'.format(proxy, speed))

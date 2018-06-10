@@ -9,6 +9,7 @@
 -------------------------------------------------
    Change Activity:
                    2016/12/2:
+                   2018/04/23: 修改了数据存储的方式
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -68,8 +69,9 @@ class DbClient(object):
             __type = "SsdbClient"
         elif "REDIS" == self.config.db_type:
             __type = "RedisClient"
-        elif "MONGODB" == self.config.db_type:
-            __type = "MongodbClient"
+        # Mongodb 还没更新, 与新架构不兼容
+        # elif "MONGODB" == self.config.db_type:
+        #     __type = "MongodbClient"
         else:
             pass
         assert __type, 'type error, Not support DB type: {}'.format(self.config.db_type)
@@ -80,11 +82,17 @@ class DbClient(object):
     def get(self, key, **kwargs):
         return self.client.get(key, **kwargs)
 
+    def sput(self, setname, key):
+        return self.client.sput(setname, key)
+
     def put(self, key, **kwargs):
         return self.client.put(key, **kwargs)
 
     def update(self, key, value, **kwargs):
         return self.client.update(key, value, **kwargs)
+
+    def sdelete(self, setname, key):
+        return self.client.
 
     def delete(self, key, **kwargs):
         return self.client.delete(key, **kwargs)

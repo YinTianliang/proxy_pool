@@ -258,6 +258,15 @@ class GetFreeProxy(object):
                 ip_addr = base64.b64decode(info[0].split("'")[1]).decode()
                 yield [ip_addr, eng2chi[info[3]], info[1]]
 
+    @staticmethod
+    def xdaili():
+        url = 'http://api.xdaili.cn/xdaili-api//greatRecharge/getGreatIp?spiderId=f9e32b96fcb74629a7754c514f966e24&orderno=MF201861086776n9tsg&returnType=2&count=20'
+        res = requests.get(url).json()
+
+        if res['ERRORCODE'] == '0':
+            for proxy in res['RESULT']:
+                yield [proxy, '匿名', 'HTTP/HTTPS']
+
 
 if __name__ == '__main__':
     gg = GetFreeProxy()

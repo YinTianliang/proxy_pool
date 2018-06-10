@@ -46,8 +46,9 @@ class ProxyRefreshSchedule(ProxyManager):
         验证raw_proxy_queue中的代理, 将可用的代理放入useful_proxy_queue
         :return:
         """
-        self.db.changeTable(self.raw_proxy_queue)
-        raw_proxy_item = self.db.pop()
+        # self.db.changeTable(self.raw_proxy_queue)
+        # raw_proxy_item = self.db.pop()
+        raw_proxy_item = self.db.pop(self.raw_proxy_queue)
         self.log.info('ProxyRefreshSchedule: %s start validProxy' % time.ctime())
         # 计算剩余代理，用来减少重复计算
         remaining_proxies = self.getAll()
@@ -62,20 +63,23 @@ class ProxyRefreshSchedule(ProxyManager):
                 speed = getProxySpeed(raw_proxy)
 
             if speed < 20:
-                self.db.changeTable(self.useful_proxy_queue)
-                self.db.put(raw_proxy)
-                self.db.changeTable(self.proxy_speed)
-                self.db.put(raw_proxy, num=speed)
+                self.db.sput(self.useful_proxy_queue, raw_proxy)
+                self.db.put(raw_proxy, {'speed': speed})
+                # self.db.changeTable(self.useful_proxy_queue)
+                # self.db.put(raw_proxy)
+                # self.db.changeTable(self.proxy_speed)
+                # self.db.put(raw_proxy, num=speed)
                 self.log.info('ProxyRefreshSchedule: %s validation pass.[%.3fs]' % (raw_proxy, speed))
             else:
-                self.db.changeTable(self.proxy_type)
                 self.db.delete(raw_proxy)
-                self.db.changeTable(self.proxy_annoy)
-                self.db.delete(raw_proxy)
+                # self.db.changeTable(self.proxy_type)
+                # self.db.delete(raw_proxy)
+                # self.db.changeTable(self.proxy_annoy)
+                # self.db.delete(raw_proxy)
                 self.log.info('ProxyRefreshSchedule: %s validation fail' % raw_proxy)
-            self.db.changeTable(self.raw_proxy_queue)
-            raw_proxy_item = self.db.pop()
-            remaining_proxies = self.getAll()
+            # self.db.changeTable(self.raw_proxy_queue)
+            raw_proxy_item = self.db.pop(self.raw_proxy_queue)
+            remaining_proxies = self.getAll(self.raw_proxy_queue)
         self.log.info('ProxyRefreshSchedule: %s validProxy complete' % time.ctime())
 
 

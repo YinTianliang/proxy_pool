@@ -11,6 +11,7 @@
                    2016/12/2:
                    2017/09/22: PY3中 redis-py返回的数据是bytes型
                    2017/09/27: 修改pop()方法 返回{proxy:value}字典
+                   2018/04/23: 修改了数据存储的方式
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -26,11 +27,17 @@ class SsdbClient(object):
     """
     SSDB client
 
-    SSDB中代理存放的容器为hash：
-        原始代理存放在name为raw_proxy的hash中，key为代理的ip:port，value为为None,以后扩展可能会加入代理属性；
-        验证后的代理存放在name为useful_proxy的hash中，key为代理的ip:port，value为一个计数,初始为1，每校验失败一次减1；
-
+    SSDB中每个代理无论当前状态如何, 都用一个hash存储相关信息, key为代理的ip:port:
+        原始代理存放在name为raw_proxy的set中
+        验证后的代理存放在name为useful_proxy的set中
+        稳定存在的代理存放在name为stable_proxy的set中
     """
+    # """
+    # SSDB中代理存放的容器为hash：
+    #     原始代理存放在name为raw_proxy的hash中，key为代理的ip:port，value为为None,以后扩展可能会加入代理属性；
+    #     验证后的代理存放在name为useful_proxy的hash中，key为代理的ip:port，value为一个计数,初始为1，每校验失败一次减1；
+    #
+    # """
 
     def __init__(self, name, host, port):
         """

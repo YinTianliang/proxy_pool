@@ -35,9 +35,6 @@ class ProxyManager(object):
         self.raw_proxy_queue = 'raw_proxy'
         self.log = LogHandler('proxy_manager')
         self.useful_proxy_queue = 'useful_proxy'
-        self.proxy_speed = 'proxy_speed'
-        self.proxy_annoy = 'proxy_annoy'
-        self.proxy_type = 'proxy_type'
 
     def refresh(self):
         """
@@ -63,15 +60,23 @@ class ProxyManager(object):
 
             # store
             for proxy in proxy_set:
-                self.db.changeTable(self.useful_proxy_queue)
-                if self.db.exists(proxy[0]):
+
+                if self.db.exists(self.useful_proxy_queue, proxy[0]):
                     continue
-                self.db.changeTable(self.raw_proxy_queue)
-                self.db.put(proxy[0])
-                self.db.changeTable(self.proxy_annoy)
-                self.db.put(proxy[0], num=proxy[1])
-                self.db.changeTable(self.proxy_type)
-                self.db.put(proxy[0], num=proxy[2].upper())
+
+                self.db.sput(self.raw_proxy_queue, proxy[0])
+                self.db.put(proxy[0], **{'annoy': proxy[1], 'type': proxy[2].upper()})
+
+
+                # self.db.changeTable(self.useful_proxy_queue)
+                # if self.db.exists(proxy[0]):
+                #     continue
+                # self.db.changeTable(self.raw_proxy_queue)
+                # self.db.put(proxy[0])
+                # self.db.changeTable(self.proxy_annoy)
+                # self.db.put(proxy[0], num=proxy[1])
+                # self.db.changeTable(self.proxy_type)
+                # self.db.put(proxy[0], num=proxy[2].upper())
 
     def get(self, **kwargs):
         """
@@ -100,51 +105,60 @@ class ProxyManager(object):
         :param proxy:
         :return:
         """
-        self.db.changeTable(self.useful_proxy_queue)
+        self.db.sdelete(self.useful_proxy_queue, proxy)
         self.db.delete(proxy)
+        # self.db.changeTable(self.useful_proxy_queue)
+        # self.db.delete(proxy)
 
     def getAll(self):
         """
         get all proxy from pool as list
         :return:
         """
-        self.db.changeTable(self.useful_proxy_queue)
-        item_dict = self.db.getAll()
-        if EnvUtil.PY3:
-            return list(item_dict.keys()) if item_dict else list()
-        return item_dict.keys() if item_dict else list()
+        proxies = self.db.getAll(self.useful_proxy_queue)
+        return proxies
+        # self.db.changeTable(self.useful_proxy_queue)
+        # item_dict = self.db.getAll()
+        # if EnvUtil.PY3:
+        #     return list(item_dict.keys()) if item_dict else list()
+        # return item_dict.keys() if item_dict else list()
 
     def getFull(self):
         """
         get all proxy with full infomation from poll as list
         :return:
         """
-        proxy_info = {
-            self.useful_proxy_queue: 'address',
-            self.proxy_annoy: 'annoy',
-            self.proxy_type: 'type',
-            self.proxy_speed: 'speed'
-        }
+        proxies = self.db.getFull()
 
-        item_dict = {}
-
-        for key, value in proxy_info.items():
-            self.db.changeTable(key)
-            item_dict[value] = self.db.getAll()
-
-        item_list = []
-        for addr in item_dict['address']:
-            item = {item: item_dict[item][addr] for item in item_dict.keys()}
-            item['address'] = addr
-            item_list.append(item)
-
-        return item_list
+        return proxies
+        # proxy_info = {
+        #     self.useful_proxy_queue: 'address',
+        #     self.proxy_annoy: 'annoy',
+        #     self.proxy_type: 'type',
+        #     self.proxy_speed: 'speed'
+        # }
+        #
+        # item_dict = {}
+        #
+        # for key, value in proxy_info.items():
+        #     self.db.changeTable(key)
+        #     item_dict[value] = self.db.getAll()
+        #
+        # item_list = []
+        # for addr in item_dict['address']:
+        #     item = {item: item_dict[item][addr] for item in item_dict.keys()}
+        #     item['address'] = addr
+        #     item_list.append(item)
+        #
+        # return item_list
 
     def getNumber(self):
-        self.db.changeTable(self.raw_proxy_queue)
-        total_raw_proxy = self.db.getNumber()
-        self.db.changeTable(self.useful_proxy_queue)
-        total_useful_queue = self.db.getNumber()
+        # self.db.changeTable(self.raw_proxy_queue)
+        # total_raw_proxy = self.db.getNumber()
+        total_raw_proxy = self.db.getNumber(self.raw_proxy_queue)
+        # self.db.changeTable(self.useful_proxy_queue)
+        # total_useful_queue = self.db.getNumber()
+        total_useful_queue = self.db.getNumber(self.useful_proxy_queue)
         return {'raw_proxy': total_raw_proxy, 'useful_proxy': total_useful_queue}
 
 
