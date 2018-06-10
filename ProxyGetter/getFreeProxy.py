@@ -15,16 +15,18 @@ import re
 import sys
 import requests
 
+
 try:
     from importlib import reload  # py3 实际不会实用，只是为了不显示语法错误
 except:
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
-sys.path.append('../')
+sys.path.append('..')
 
 from Util.utilFunction import robustCrawl, getHtmlTree
 from Util.WebRequest import WebRequest
+from Util.utilFunction import verifyProxyFormat
 
 # for debug to disable insecureWarning
 requests.packages.urllib3.disable_warnings()
@@ -32,14 +34,13 @@ requests.packages.urllib3.disable_warnings()
 """
     66ip.cn
     data5u.com
-    ip181.com
     xicidaili.com
     goubanjia.com
     xdaili.cn
     kuaidaili.com
     cn-proxy.com
     proxy-list.org
-    www.mimiip.com
+    www.mimiip.com to do
 """
 
 
@@ -54,28 +55,31 @@ class GetFreeProxy(object):
     @staticmethod
     def freeProxyFirst(page=10):
         """
-        抓取无忧代理 http://www.data5u.com/
+        无忧代理 http://www.data5u.com/
+        几乎没有能用的
         :param page: 页数
         :return:
         """
-        url_list = ['http://www.data5u.com/',
-                    'http://www.data5u.com/free/',
-                    'http://www.data5u.com/free/gngn/index.shtml',
-                    'http://www.data5u.com/free/gnpt/index.shtml']
+        url_list = [
+            'http://www.data5u.com/',
+            'http://www.data5u.com/free/gngn/index.shtml',
+            'http://www.data5u.com/free/gnpt/index.shtml'
+        ]
         for url in url_list:
             html_tree = getHtmlTree(url)
             ul_list = html_tree.xpath('//ul[@class="l2"]')
             for ul in ul_list:
                 try:
-                    yield [':'.join(ul.xpath('.//li/text()')[0:2])] +  ul.xpath('.//a/text()')[0:2]
+                    yield [':'.join(ul.xpath('.//li/text()')[0:2])] + ul.xpath('.//a/text()')[0:2]
                 except Exception as e:
-                    pass
+                    print(e)
 
     @staticmethod
-    def freeProxySecond(proxy_number=100):
+    def freeProxySecond(area=33, page=1):
         """
-        抓取代理66 http://www.66ip.cn/
-        :param proxy_number: 代理数量
+        代理66 http://www.66ip.cn/
+        :param area: 抓取代理页数，page=1北京代理页，page=2上海代理页......
+        :param page: 翻页
         :return:
         """
         url = "http://www.66ip.cn/mo.php?sxb=&tqsl={}&port=&export=&ktip=&sxa=&submit=%CC%E1++%C8%A1&textarea=".format(
@@ -88,7 +92,7 @@ class GetFreeProxy(object):
     @staticmethod
     def freeProxyThird(days=1):
         """
-        抓取ip181 http://www.ip181.com/
+        ip181 http://www.ip181.com/  不能用了
         :param days:
         :return:
         """
@@ -102,20 +106,22 @@ class GetFreeProxy(object):
             pass
 
     @staticmethod
-    def freeProxyFourth():
+    def freeProxyFourth(page_count=2):
         """
-        抓取西刺代理 http://api.xicidaili.com/free2016.txt
+        西刺代理 http://www.xicidaili.com
         :return:
         """
-        url_list = ['http://www.xicidaili.com/nn',  # 高匿
-                    'http://www.xicidaili.com/nt',  # 透明
-                    ]
+        url_list = [
+            'http://www.xicidaili.com/nn/',  # 高匿
+            'http://www.xicidaili.com/nt/',  # 透明
+        ]
         for each_url in url_list:
             tree = getHtmlTree(each_url)
             proxy_list = tree.xpath('.//table[@id="ip_list"]//tr')[1:]
             for proxy in proxy_list:
                 try:
-                    info = proxy.xpath('./td[position() <= 3 or position() >= 5]/text()')
+                    info = proxy.xpath(
+                        './td[position() <= 3 or position() >= 5]/text()')
                     yield [':'.join(info[0:2])] + info[2:4]
                 except Exception as e:
                     pass
@@ -123,7 +129,7 @@ class GetFreeProxy(object):
     @staticmethod
     def freeProxyFifth():
         """
-        抓取guobanjia http://www.goubanjia.com/
+        guobanjia http://www.goubanjia.com/
         :return:
         """
         url = "http://www.goubanjia.com/"
@@ -141,7 +147,8 @@ class GetFreeProxy(object):
                 # :符号裸放在td下，其他放在div span p中，先分割找出ip，再找port
                 ip_addr = ''.join(each_proxy.xpath(xpath_str))
                 ip_type = each_proxy.xpath('./td/a/text()')[0:2]
-                port = each_proxy.xpath(".//span[contains(@class, 'port')]/text()")[0]
+                port = each_proxy.xpath(
+                    ".//span[contains(@class, 'port')]/text()")[0]
                 yield ['{}:{}'.format(ip_addr, port)] + ip_type
             except Exception as e:
                 pass
@@ -149,7 +156,7 @@ class GetFreeProxy(object):
     @staticmethod
     def freeProxySixth():
         """
-        抓取讯代理免费proxy http://www.xdaili.cn/ipagent/freeip/getFreeIps?page=1&rows=10
+        讯代理 http://www.xdaili.cn/
         :return:
         """
         url = 'http://www.xdaili.cn/ipagent/freeip/getFreeIps?page=1&rows=10'
@@ -164,7 +171,7 @@ class GetFreeProxy(object):
     @staticmethod
     def freeProxySeventh():
         """
-        快代理免费https://www.kuaidaili.com/free/inha/1/
+        快代理 https://www.kuaidaili.com
         """
         url_list = [
             'https://www.kuaidaili.com/free/inha/{page}/',
@@ -185,11 +192,14 @@ class GetFreeProxy(object):
     @staticmethod
     def freeProxyEight():
         """
-        秘密代理IP网站http://www.mimiip.com
+        秘密代理 http://www.mimiip.com
         """
-        url_gngao = ['http://www.mimiip.com/gngao/%s' % n for n in range(1, 5)]  # 国内高匿
-        url_gnpu = ['http://www.mimiip.com/gnpu/%s' % n for n in range(1, 5)]  # 国内普匿
-        url_gntou = ['http://www.mimiip.com/gntou/%s' % n for n in range(1, 5)]  # 国内透明
+        url_gngao = ['http://www.mimiip.com/gngao/%s' %
+                     n for n in range(1, 5)]  # 国内高匿
+        url_gnpu = ['http://www.mimiip.com/gnpu/%s' %
+                    n for n in range(1, 5)]  # 国内普匿
+        url_gntou = ['http://www.mimiip.com/gntou/%s' %
+                     n for n in range(1, 5)]  # 国内透明
         url_list = url_gngao + url_gnpu + url_gntou
 
         for url in url_list:
@@ -209,7 +219,8 @@ class GetFreeProxy(object):
         :return:
         """
         url_list = ['http://www.ip3366.net/?stype=1&page={}'.format(i) for i in range(1, 5)] + \
-                   ['http://www.swei360.com/?page={}'.format(i) for i in range(1, 5)]
+                   ['http://www.swei360.com/?page={}'.format(i)
+                    for i in range(1, 5)]
 
         for url in url_list:
             tree = getHtmlTree(url)
@@ -223,6 +234,76 @@ class GetFreeProxy(object):
                 yield [ip_addr, ip_annoy, info[3]]
 
     @staticmethod
+    def freeProxyNinth():
+        """
+        码农代理 https://proxy.coderbusy.com/
+        :return:
+        """
+        urls = ['https://proxy.coderbusy.com/classical/country/cn.aspx?page=1']
+        request = WebRequest()
+        for url in urls:
+            r = request.get(url)
+            proxies = re.findall(
+                'data-ip="(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})".+?>(\d+)</td>', r.text)
+            for proxy in proxies:
+                yield [':'.join(proxy), '透明', 'HTTP']  # TODO: 鉴定透明及协议种类
+
+    @staticmethod
+    def freeProxyTen():
+        """
+        云代理 http://www.ip3366.net/free/
+        :return:
+        """
+        urls = ['http://www.ip3366.net/free/']
+        request = WebRequest()
+        for url in urls:
+            r = request.get(url)
+            proxies = re.findall(
+                r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\s\S]*?<td>(\d+)</td>', r.text)
+            for proxy in proxies:
+                yield [":".join(proxy), '透明', 'HTTP']  # TODO: 鉴定透明及协议种类
+
+    @staticmethod
+    def freeProxyEleven():
+        """
+        IP海 http://www.iphai.com/free/ng
+        :return:
+        """
+        urls = [
+            'http://www.iphai.com/free/ng',
+            'http://www.iphai.com/free/np',
+            'http://www.iphai.com/free/wg',
+            'http://www.iphai.com/free/wp'
+        ]
+        request = WebRequest()
+        for url in urls:
+            r = request.get(url)
+            proxies = re.findall(r'<td>\s*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*?</td>[\s\S]*?<td>\s*?(\d+)\s*?</td>',
+                                 r.text)
+            for proxy in proxies:
+                yield [":".join(proxy), '透明', 'HTTP']  # TODO: 鉴定透明及协议种类
+
+    @staticmethod
+    def freeProxyTwelve(page_count=8):
+        """
+        guobanjia http://ip.jiangxianli.com/?page=
+        免费代理库
+        超多量
+        :return:
+        """
+        for i in range(1, page_count + 1):
+            url = 'http://ip.jiangxianli.com/?page={}'.format(i)
+            # print(url)
+            html_tree = getHtmlTree(url)
+            tr_list = html_tree.xpath(
+                "/html/body/div[1]/div/div[1]/div[2]/table/tbody/tr")
+            if len(tr_list) == 0:
+                continue
+            for tr in tr_list:
+                # TODO: 鉴定透明及协议种类
+                yield [tr.xpath("./td[2]/text()")[0] + ":" + tr.xpath("./td[3]/text()")[0], '透明', 'HTTP']
+
+    @staticmethod
     def freeProxyWallFirst():
         """
         墙外网站 cn-proxy
@@ -232,17 +313,19 @@ class GetFreeProxy(object):
         request = WebRequest()
         for url in urls:
             r = request.get(url)
-            proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\w\W]<td>(\d+)</td>', r.text)
+            proxies = re.findall(
+                r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\w\W]<td>(\d+)</td>', r.text)
             for proxy in proxies:
                 yield [':'.join(proxy), '透明', 'HTTP']
 
     @staticmethod
     def freeProxyWallSecond():
         """
-        墙外网站 proxy-list
+        https://proxy-list.org/english/index.php
         :return:
         """
-        urls = ['https://proxy-list.org/english/index.php?p=%s' % n for n in range(1, 10)]
+        urls = ['https://proxy-list.org/english/index.php?p=%s' %
+                n for n in range(1, 10)]
         eng2chi = {
             'Transparent': '透明',
             'Anonymous': '匿名',
@@ -267,35 +350,59 @@ class GetFreeProxy(object):
             for proxy in res['RESULT']:
                 yield [proxy, '匿名', 'HTTP/HTTPS']
 
+    @staticmethod
+    def freeProxyWallThird():
+        urls = ['https://list.proxylistplus.com/Fresh-HTTP-Proxy-List-1']
+        request = WebRequest()
+        for url in urls:
+            r = request.get(url)
+            proxies = re.findall(
+                r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\s\S]*?<td>(\d+)</td>', r.text)
+            for proxy in proxies:
+                yield ':'.join(proxy)
+
 
 if __name__ == '__main__':
     gg = GetFreeProxy()
-    # for e in gg.freeProxyFirst():
-    #     print(e)
-    #
-    # for e in gg.freeProxySecond():
-    #     print(e)
-    #
-    # for e in gg.freeProxyThird():
-    #     print(e)
-    #
-    # for e in gg.freeProxyFourth():
-    #     print(e)
-    #
-    # for e in gg.freeProxyFifth():
-    #     print(e)
-    #
-    # for e in gg.freeProxySixth():
-    #     print(e)
-    #
-    # for e in gg.freeProxySeventh():
-    #     print(e)
-    #
-    # for e in gg.freeProxyEight():
-    #     print(e)
-    #
-    # for e in gg.freeProxyWallFirst():
-    #     print(e)
-    #
-    # for e in gg.freeProxyWallSecond():
-    #     print(e)
+
+    # test_batch(gg.freeProxyFirst())
+
+    # test_batch(gg.freeProxySecond())
+
+    # test_batch(gg.freeProxyFourth())
+
+    # test_batch(gg.freeProxyFifth())
+
+    # test_batch(gg.freeProxySixth())
+
+    # test_batch(gg.freeProxySeventh())
+
+    # test_batch(gg.freeProxyEight())
+
+    # test_batch(gg.freeProxyNinth())
+
+    # test_batch(gg.freeProxyTen())
+
+    # test_batch(gg.freeProxyEleven())
+
+    proxy_iter = gg.freeProxyTwelve()
+    proxy_set = set()
+    for proxy in proxy_iter:
+        proxy = proxy.strip()
+        if proxy and verifyProxyFormat(proxy):
+            #self.log.info('{func}: fetch proxy {proxy}'.format(func=proxyGetter, proxy=proxy))
+            proxy_set.add(proxy)
+        # else:
+            #self.log.error('{func}: fetch proxy {proxy} error'.format(func=proxyGetter, proxy=proxy))
+
+        # store
+    for proxy in proxy_set:
+        print(proxy)
+
+    # test_batch(gg.freeProxyTwelve())
+
+    # test_batch(gg.freeProxyWallFirst())
+
+    # test_batch(gg.freeProxyWallSecond())
+
+    # test_batch(gg.freeProxyWallThird())
